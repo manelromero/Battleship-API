@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import webapp2
-from api import BattleshipApi
-from models import User
+# from api import BattleshipApi
+# from models import User
 
 
 class MainHandler(webapp2.RequestHandler):
