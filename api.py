@@ -4,7 +4,7 @@
 import endpoints
 from protorpc import remote, messages
 from random import randint
-from models import User, Game
+from models import User, Board, Game
 from models import StringMessage, NewGameForm, GameForm
 
 
@@ -37,17 +37,20 @@ class BattleshipApi(remote.Service):
             message='User {} created!'.format(request.user_name)
             )
 
+
+
     @endpoints.method(
         request_message=NEW_GAME_REQUEST,
         response_message=GameForm,
         path='game',
-        name='new_game',
+        name='create_game',
         http_method='POST'
         )
-    def new_game(self, request):
+    def create_game(self, request):
         """Creates new game"""
         user1 = User.query(User.name == request.user1_name).get()
         user2 = User.query(User.name == request.user2_name).get()
+        # Check if users exist
         if not user1:
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user1_name)
@@ -56,19 +59,33 @@ class BattleshipApi(remote.Service):
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user2_name)
                 )
+        # Check if we need to generate automatic boards
+        if request.autoboard1:
+            board1 = Board.new_board(user1.key)
+        else:
+            board1 = Board.empty_board()
+        if request.autoboard2:
+            board2 = Board.new_board(user2.key)
+        else:
+            board2 = Board.empty_board()
+
         try:
-            game = Game.new_game(user1.key, user2.key)
+            game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
         except ValueError:
             raise endpoints.BadRequestException('Something went wrong')
         return game.to_form('Good luck playing battleship')
 
+
+        
+
+
     @endpoints.method(
         response_message=StringMessage,
-        path='board',
-        name='new_board',
+        path='fire',
+        name='fire',
         http_method='GET'
         )
-    def new_board(self, request):
+    def fire(self, request):
         """Generates all the positions"""
         board = []
         positions = []
