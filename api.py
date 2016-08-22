@@ -5,21 +5,15 @@ import endpoints
 from protorpc import remote, messages
 from random import randint
 from models import User, Board, Game
-from models import StringMessage, NewGameForm, GameForm
+from models import StringMessage, NewUserForm, NewGameForm, GameForm
 
-
-USER_REQUEST = endpoints.ResourceContainer(
-    user_name=messages.StringField(1),
-    email=messages.StringField(2)
-    )
-NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 
 @endpoints.api(name='battleship', version='1.0')
 class BattleshipApi(remote.Service):
     """Game API"""
     # Endpoint from the Skeleton Project Guess-a-Number
     @endpoints.method(
-        request_message=USER_REQUEST,
+        request_message=endpoints.ResourceContainer(NewUserForm),
         response_message=StringMessage,
         path='user',
         name='create_user',
@@ -37,10 +31,8 @@ class BattleshipApi(remote.Service):
             message='User {} created!'.format(request.user_name)
             )
 
-
-
     @endpoints.method(
-        request_message=NEW_GAME_REQUEST,
+        request_message=endpoints.ResourceContainer(NewGameForm),
         response_message=GameForm,
         path='game',
         name='create_game',
@@ -59,24 +51,22 @@ class BattleshipApi(remote.Service):
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user2_name)
                 )
+        board1 = Board.empty_board(user1.key)
+        board2 = Board.empty_board(user2.key)
         # Check if we need to generate automatic boards
         if request.autoboard1:
-            board1 = Board.new_board(user1.key)
-        else:
-            board1 = Board.empty_board()
+            board1.auto_board()
         if request.autoboard2:
-            board2 = Board.new_board(user2.key)
-        else:
-            board2 = Board.empty_board()
-
+            board2.auto_board()
+        # Generate new game
         try:
             game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
         except ValueError:
             raise endpoints.BadRequestException('Something went wrong')
-        return game.to_form('Good luck playing battleship')
+        return game.to_form('Game created')
 
 
-        
+
 
 
     @endpoints.method(
@@ -87,21 +77,6 @@ class BattleshipApi(remote.Service):
         )
     def fire(self, request):
         """Generates all the positions"""
-        board = []
-        positions = []
-        success = 0
-        while success < 100:
-            already_in_board = False
-            letter = randint(1,10)
-            number = randint(1,10)
-            for element in board:
-                if letter == element[0] and number == element[1]:
-                    already_in_board = True
-            if already_in_board == False:
-                board.append([letter, number])
-                positions.append(chr(64 + letter) + str(number))
-                success += 1
-        return StringMessage(message=positions)
 
 
 api = endpoints.api_server([BattleshipApi])

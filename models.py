@@ -1,5 +1,7 @@
 from google.appengine.ext import ndb
 from protorpc import messages
+from random import randint
+import json
 
 
 class User(ndb.Model):
@@ -14,23 +16,26 @@ class Board(ndb.Model):
     board = ndb.JsonProperty(required=True)
 
     @classmethod
-    def new_board(cls, user):
-        """Creates and returns a new board"""
-        # Generate the empty board
-        new_board = []
+    def empty_board(cls, user):
+        """Creates and returns an empty board"""
+        empty_board = []
         for row in xrange(0, 10):
-            new_board.append([0] * 10)
-        # Add battleships
-        # add_ship(5)
-        # add_ship(4)
-        # add_ship(3)
-        # add_ship(2)
-        # add_ship(2)
-        # add_ship(1)
-        # add_ship(1)
-        board = Board(user=user, board=new_board)
+            empty_board.append([0] * 10)
+        board = Board(user=user, board=empty_board)
         board.put()
         return board
+
+    def auto_board(self):
+        """Randomly create ships in a board"""
+        self.add_ship(5)
+        self.add_ship(4)
+        self.add_ship(3)
+        self.add_ship(2)
+        self.add_ship(2)
+        self.add_ship(1)
+        self.add_ship(1)
+        self.put()
+        return self
 
     def add_ship(self, ship_length):
         success = False
@@ -46,29 +51,30 @@ class Board(ndb.Model):
                 for width in xrange(-1, 2):
                     if horizontal:
                         try:
-                            value = board[row + width][column + length]
-                            if value == 1:
+                            value = self.board[row + width][column + length]
+                            if value > 0:
                                 free_space = False
                         except IndexError:
                             pass
                     else:
                         try:
-                            value = board[row + length][column + width]
-                            if value == 1:
+                            value = self.board[row + length][column + width]
+                            if value > 0:
                                 free_space = False
                         except IndexError:
                             pass
             # If there is free space, place the ship
             if free_space:
-                board[row][column] = 1
+                self.board[row][column] = 2
                 for l in xrange(1, ship_length):
                     if horizontal:
-                        board[row][column + l] = 1
+                        self.board[row][column + l] = 2
                     else:
-                        board[row + l][column] = 1
+                        self.board[row + l][column] = 2
                 # success is now True so while loop stops
                 success = True
-        return board
+        self.put()
+        return self
 
 
 class Game(ndb.Model):
@@ -90,22 +96,17 @@ class Game(ndb.Model):
         """Returns a GameForm representation of the Game"""
         print self.board1.get().board
         form = GameForm()
-        # form.urlsafe_key = self.key.urlsafe()
         form.user1_name = self.user1.get().name
         form.user2_name = self.user2.get().name
-        # form.board1 = self.board1.get().board
-        # form.board2 = self.board2.get().board
+        form.board1 = json.dumps(self.board1.get().board)
+        form.board2 = json.dumps(self.board2.get().board)
         form.message = message
         return form
 
 
-class GameForm(messages.Message):
-    """GameForm for outbound game state information"""
-    user1_name = messages.StringField(1, required=True)
-    user2_name = messages.StringField(2, required=True)
-    # board1 = messages.StringField(3, required=True)
-    # board2 = messages.StringField(4, required=True)
-    message = messages.StringField(5, required=True)
+class NewUserForm(messages.Message):
+    user_name = messages.StringField(1, required=True)
+    email = messages.StringField(2)
 
 
 class NewGameForm(messages.Message):
@@ -114,6 +115,15 @@ class NewGameForm(messages.Message):
     user2_name = messages.StringField(2, required=True)
     autoboard1 = messages.BooleanField(3, required=True)
     autoboard2 = messages.BooleanField(4, required=True)
+
+
+class GameForm(messages.Message):
+    """GameForm for outbound game state information"""
+    user1_name = messages.StringField(1, required=True)
+    user2_name = messages.StringField(2, required=True)
+    board1 = messages.StringField(3, required=True)
+    board2 = messages.StringField(4, required=True)
+    message = messages.StringField(5, required=True)
 
 
 class StringMessage(messages.Message):
