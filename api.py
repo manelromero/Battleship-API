@@ -5,7 +5,9 @@ import endpoints
 from protorpc import remote, messages
 from random import randint
 from models import User, Board, Game
-from models import StringMessage, NewUserForm, NewGameForm, GameForm
+from models import StringMessage, NewUserForm, NewGameForm, GameForm,\
+    NewShotForm, ShotForm
+from utils import get_by_urlsafe
 
 
 @endpoints.api(name='battleship', version='1.0')
@@ -66,17 +68,18 @@ class BattleshipApi(remote.Service):
         return game.to_form('Game created')
 
 
-
-
-
     @endpoints.method(
-        response_message=StringMessage,
-        path='fire',
-        name='fire',
-        http_method='GET'
+        request_message=endpoints.ResourceContainer(NewShotForm),
+        response_message=ShotForm,
+        path='shot',
+        name='new_shot',
+        http_method='POST'
         )
-    def fire(self, request):
+    def shot(self, request):
         """Generates all the positions"""
+        game = get_by_urlsafe(request.game, Game)
+        board = get_by_urlsafe(request.board, Board)
+        return game.shot(board, request.coordinates)
 
 
 api = endpoints.api_server([BattleshipApi])
