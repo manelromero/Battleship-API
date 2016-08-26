@@ -11,6 +11,13 @@ class User(ndb.Model):
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
 
+    def get_user_games(self):
+        """Gets all user's games"""
+        games = Game.query(ndb.OR(
+            Game.user1 == self.key, Game.user2 == self.key)
+            )
+        return games
+
 
 class Board(ndb.Model):
     """Board for the game"""
@@ -32,6 +39,11 @@ class Board(ndb.Model):
         self.add_ships([5, 4, 3, 2, 2, 1, 1])
         self.put()
         return self
+
+    def cancel_board(self):
+        """Cancels a game in progress"""
+        self.key.delete()
+        return
 
     def add_ships(self, ships):
         """Adds a ship to an existing board"""
@@ -147,6 +159,18 @@ class Board(ndb.Model):
         return board
 
 
+class Score(ndb.Model):
+    """Score"""
+    user = ndb.KeyProperty(required=True, kind='User')
+    date = ndb.DateProperty(required=True)
+    won = ndb.BooleanProperty(required=True)
+    guesses = ndb.IntegerProperty(required=True)
+
+    def to_form(self):
+        return ScoreForm(user_name=self.user.get().name, won=self.won,
+                         date=str(self.date), guesses=self.guesses)
+
+
 class Game(ndb.Model):
     """Game"""
     user1 = ndb.KeyProperty(required=True, kind='User')
@@ -170,16 +194,23 @@ class Game(ndb.Model):
         game.put()
         return game
 
-    def to_form(self, message):
+    def cancel_game(self):
+        """Cancels a game in progress"""
+        self.key.delete()
+        return
+
+    def to_form(self):
         """Returns a GameForm representation of the Game"""
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
-        form.user1_name = self.user1.get().name
-        form.user2_name = self.user2.get().name
         form.board1 = json.dumps(self.board1.get().board)
         form.board2 = json.dumps(self.board2.get().board)
-        form.message = message
+        if self.turn % 2 == 0:
+            form.turn = User.query(User.key == self.user1).get().name
+        else:
+            form.turn = User.query(User.key == self.user2).get().name
         return form
+
 
 class NewUserForm(messages.Message):
     """To create a new user"""
@@ -191,18 +222,21 @@ class NewGameForm(messages.Message):
     """To create a new game"""
     user1_name = messages.StringField(1, required=True)
     user2_name = messages.StringField(2, required=True)
-    autoboard1 = messages.BooleanField(3, required=True)
-    autoboard2 = messages.BooleanField(4, required=True)
+    autoboard1 = messages.BooleanField(3, default=False)
+    autoboard2 = messages.BooleanField(4, default=False)
 
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
-    user1_name = messages.StringField(2, required=True)
-    user2_name = messages.StringField(3, required=True)
-    board1 = messages.StringField(4, required=True)
-    board2 = messages.StringField(5, required=True)
-    message = messages.StringField(6, required=True)
+    board1 = messages.StringField(2, required=True)
+    board2 = messages.StringField(3, required=True)
+    turn = messages.StringField(4, required=True)
+
+
+class GameForms(messages.Message):
+    """Return multiple GameForms"""
+    items = messages.MessageField(GameForm, 1, repeated=True)
 
 
 class NewShotForm(messages.Message):
@@ -215,6 +249,14 @@ class NewShotForm(messages.Message):
 class ShotForm(messages.Message):
     message = messages.StringField(1, required=True)
     board = messages.StringField(2, required=True)
+
+
+class ScoreForm(messages.Message):
+    """ScoreForm for outbound Score information"""
+    user_name = messages.StringField(1, required=True)
+    date = messages.StringField(2, required=True)
+    won = messages.BooleanField(3, required=True)
+    guesses = messages.IntegerField(4, required=True)
 
 
 class StringMessage(messages.Message):

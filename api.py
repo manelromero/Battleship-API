@@ -6,7 +6,7 @@ from protorpc import remote, messages
 from random import randint
 from models import User, Board, Game
 from models import StringMessage, NewUserForm, NewGameForm, GameForm,\
-    NewShotForm, ShotForm
+    GameForms, NewShotForm, ShotForm
 from utils import get_by_urlsafe
 
 
@@ -22,7 +22,7 @@ class BattleshipApi(remote.Service):
         http_method='POST'
         )
     def create_user(self, request):
-        """Create a User. Requires a unique username"""
+        """Create a new user, requires a unique username"""
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!'
@@ -41,7 +41,7 @@ class BattleshipApi(remote.Service):
         http_method='POST'
         )
     def create_game(self, request):
-        """Creates new game"""
+        """Creates a new game"""
         user1 = User.query(User.name == request.user1_name).get()
         user2 = User.query(User.name == request.user2_name).get()
         # Check if users exist
@@ -65,13 +65,13 @@ class BattleshipApi(remote.Service):
             game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
         except ValueError:
             raise endpoints.BadRequestException('Something went wrong')
-        return game.to_form('Game created')
+        return game.to_form()
 
     @endpoints.method(
         request_message=endpoints.ResourceContainer(NewShotForm),
         response_message=ShotForm,
-        path='shot',
-        name='new_shot',
+        path='board',
+        name='shot',
         http_method='POST'
         )
     def shot(self, request):
@@ -83,6 +83,60 @@ class BattleshipApi(remote.Service):
         else:
             board = game.board2.get()
         return board.shot(game, request.coordinates)
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(
+            user_name=messages.StringField(1)
+            ),
+        response_message=GameForms,
+        path='user/games/{user_name}',
+        name='get_user_games',
+        http_method='GET'
+        )
+    def get_user_games(self, request):
+        """Returns all user's active games"""
+        user = User.query(User.name == request.user_name).get()
+        games = user.get_user_games()
+        return GameForms(items=[game.to_form() for game in games])
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(
+            game_key=messages.StringField(1)
+            ),
+        response_message=StringMessage,
+        path='game/cancel/{game_key}',
+        name='cancel_game',
+        http_method='POST'
+        )
+    def cancel_game(self, request):
+        """Cancels a game in progress"""
+        game = get_by_urlsafe(request.game_key, Game)
+        board1 = Board.query(Board.key == game.board1).get()
+        board2 = Board.query(Board.key == game.board2).get()
+        game.cancel_game()
+        board1.cancel_board()
+        board2.cancel_board()
+        return StringMessage(message='Game canceled')
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(),
+        response_message=StringMessage,
+        path='get_high_scores',
+        name='get_high_scores',
+        http_method='GET'
+        )
+    def get_high_scores():
+        """Returns a leader-board"""
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(GameForm),
+        response_message=StringMessage,
+        path='get_game_history',
+        name='get_game_history',
+        http_method='GET'
+        )
+    def get_game_history():
+        """Returns a game movement's history"""
 
 
 api = endpoints.api_server([BattleshipApi])
