@@ -67,7 +67,6 @@ class BattleshipApi(remote.Service):
             raise endpoints.BadRequestException('Something went wrong')
         return game.to_form('Game created')
 
-
     @endpoints.method(
         request_message=endpoints.ResourceContainer(NewShotForm),
         response_message=ShotForm,
@@ -76,10 +75,14 @@ class BattleshipApi(remote.Service):
         http_method='POST'
         )
     def shot(self, request):
-        """Generates all the positions"""
+        """Fires a shot"""
         game = get_by_urlsafe(request.game, Game)
-        board = get_by_urlsafe(request.board, Board)
-        return game.shot(board, request.coordinates)
+        turn = game.turn % 2
+        if turn == 0:
+            board = game.board1.get()
+        else:
+            board = game.board2.get()
+        return board.shot(game, request.coordinates)
 
 
 api = endpoints.api_server([BattleshipApi])

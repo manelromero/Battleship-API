@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from google.appengine.ext import ndb
 from protorpc import messages
 from random import randint, choice
@@ -26,69 +28,123 @@ class Board(ndb.Model):
         return board
 
     def auto_board(self):
-        """Randomly create ships in a board"""
-        self.add_ship(5)
-        self.add_ship(4)
-        self.add_ship(3)
-        self.add_ship(2)
-        self.add_ship(2)
-        self.add_ship(1)
-        self.add_ship(1)
+        """Randomly creates ships in a board"""
+        self.add_ships([5, 4, 3, 2, 2, 1, 1])
         self.put()
         return self
 
-    def add_ship(self, ship_length):
+    def add_ships(self, ships):
         """Adds a ship to an existing board"""
-        success = False
-        while not success:
-            # Horizontal(hz) or vertical?
-            hz = choice([True, False])
-            # Start cell
-            row = randint(0, 9 * hz + (10 - ship_length) * (not hz))
-            col = randint(0, 9 * (not hz) + (10 - ship_length) * hz)
-            # If there is free space, place the ship
-            free_space = self.check_cell(row, col, hz, ship_length)
-            if free_space:
-                for l in xrange(0, ship_length):
-                    if hz:
-                        self.board[row][col + l] = 2
-                    else:
-                        self.board[row + l][col] = 2
-                self.put()
-                # success is now True so while loop stops
-                success = True
+        for ship, ship_length in enumerate(ships):
+            success = False
+            while not success:
+                # Horizontal(hz) or vertical?
+                hz = choice([True, False])
+                # Start cell
+                row = randint(0, 9 * hz + (10 - ship_length) * (not hz))
+                col = randint(0, 9 * (not hz) + (10 - ship_length) * hz)
+                # Check if there is free space
+                free_space = True
+                for l in xrange(-1, ship_length + 1):
+                    for w in xrange(-1, 2):
+                        if hz:
+                            # Check if the chosen position is in the first col
+                            # In this case x[-1] = x[9] and we don't want that
+                            if col + l >= 0:
+                                try:
+                                    value = self.board[row + w][col + l]
+                                    if value > 0:
+                                        free_space = False
+                                except IndexError:
+                                    # Index 10 doesn't exist, it's ok not to check
+                                    pass
+                        else:
+                            # Check if the chosen position is in the first col
+                            # In this case x[-1] = x[9] and we don't want that
+                            if col + w >= 0:
+                                try:
+                                    value = self.board[row + l][col + w]
+                                    if value > 0:
+                                        free_space = False
+                                except IndexError:
+                                    # Index 10 doesn't exist, it's ok not to check
+                                    pass
+                # Place the ship
+                if free_space:
+                    for l in xrange(0, ship_length):
+                        if hz:
+                            self.board[row][col + l] = 2
+                        else:
+                            self.board[row + l][col] = 2
+                    self.put()
+                    # success is now True so while loop stops
+                    success = True
         return self
 
+    def shot(self, game, coordinates):
+        """Returns the result of a shot"""
+        form = ShotForm()
+        x = ord(coordinates[0]) - 65
+        y = int(coordinates[1:]) - 1
+        # Check given coordinates are right
+        if 0 <= x <= 9 and 0 <= y <= 9:
+            cell = self.board[x][y]
+            # Miss
+            if cell == 0:
+                form.message = 'miss'
+                self.board[x][y] += 1
+                self.put()
+                game.turn += 1
+                game.put()
+            # Cell already shot
+            if cell == 1 or cell == 3:
+                form.message = 'shot'
+            # Hit
+            if cell == 2:
+                form.message = self.hit(x, y)
+                self.board[x][y] += 1
+                self.put()
+        # Given coordinates are not right
+        else:
+            form.message = 'Bad coordinates'
+        # Return the updated board
+        form.board = json.dumps(self.board)
+        print self.layout()
+        return form
 
-    def check_cell(self, row, col, hz, ship_length):
-        """Checks space around a cell"""
-        free_space = True
-        for l in xrange(-1, ship_length + 1):
-            for w in xrange(-1, 2):
-                if hz:
-                    # Check if the chosen position is in the first col
-                    # In this case x[-1] = x[9] and we don't want that
-                    if col + l >= 0:
-                        try:
-                            value = self.board[row + w][col + l]
-                            if value > 0:
-                                free_space = False
-                        except IndexError:
-                            # Index 10 doesn't exist, it's ok not to check
-                            pass
-                else:
-                    # Check if the chosen position is in the first col
-                    # In this case x[-1] = x[9] and we don't want that
-                    if col + w >= 0:
-                        try:
-                            value = self.board[row + l][col + w]
-                            if value > 0:
-                                free_space = False
-                        except IndexError:
-                            # Index 10 doesn't exist, it's ok not to check
-                            pass
-        return free_space
+    def hit(self, x, y):
+        """Checks if a hit sinks a ship"""
+        sunk = True
+        # Check up
+        ship = True
+        while ship:
+            i = -1
+            while i > -10:
+                value = self.board[x + i][y]
+                if value == 2:
+                    sunk = False
+                elif value == 0 or value == 1:
+                    ship = False
+                    break
+                i -= 1
+        message = 'sunk' if sunk else 'hit'
+        return message
 
+    def layout(self):
+        """Returns board layout"""
+        options = {0: '   │', 1: ' x │', 2: ' ☐ │', 3: ' ⊠ │'}
+        board = '   1   2   3   4   5   6   7   8   9   10\n'
+        board += ' ┌─' + '──┬─' * 9 + '──┐\n'
+        for x in xrange(0, 10):
+            board += chr(x + 65) + '│'
+            for y in xrange(0, 10):
+                value = self.board[x][y]
+                board += options[value]
+            if x < 9:
+                board += '\n ├─' + '──┼─' * 9 + '──┤\n'
+            else:
+                board += '\n └─' + '──┴─' * 9 + '──┘\n'
+        return board
 
 
 class Game(ndb.Model):
@@ -97,12 +153,20 @@ class Game(ndb.Model):
     user2 = ndb.KeyProperty(required=True, kind='User')
     board1 = ndb.KeyProperty(required=True, kind='Board')
     board2 = ndb.KeyProperty(required=True, kind='Board')
+    turn = ndb.IntegerProperty()
     game_over = ndb.BooleanProperty(required=True, default=False)
 
     @classmethod
     def new_game(cls, user1, user2, board1, board2):
         """Creates and returns a new game"""
-        game = Game(user1=user1, user2=user2, board1=board1, board2=board2)
+        turn = randint(0, 1)
+        game = Game(
+            user1=user1,
+            user2=user2,
+            board1=board1,
+            board2=board2,
+            turn=turn
+            )
         game.put()
         return game
 
@@ -115,56 +179,7 @@ class Game(ndb.Model):
         form.board1 = json.dumps(self.board1.get().board)
         form.board2 = json.dumps(self.board2.get().board)
         form.message = message
-        print '\n'
-        print form.board1
-        print '\n'
-        print form.board2
-        print '\n'
         return form
-
-    def shot(self, board, coordinates):
-        """Returns the result of a shot"""
-        form = ShotForm()
-        x = ord(coordinates[0]) - 65
-        y = int(coordinates[1:]) - 1
-        # Check given coordinates are right
-        if 0 <= x <= 9 and 0 <= y <= 9:
-            cell = board.board[x][y]
-            # Miss
-            if cell == 0:
-                form.message = 'miss'
-                board.board[x][y] += 1
-                board.put()
-            # Hit
-            if cell == 2:
-                form.message = 'hit'
-                # Check if ship it's been sunk
-                sunk = True
-                up = -1 if y > 0 else 0
-                down = 2 if y < 9 else 1
-                left = -1 if x > 0 else 0
-                right = 2 if x < 9 else 1
-                for width in xrange(left, right):
-                    for height in xrange(up, down):
-                        value = board.board[x + width][y + height]
-                        if value == 2 and (width != 0 or height != 0):
-                            sunk = False
-                        if value == 3:
-                            pass
-                if sunk:
-                    form.message = 'sunk'
-                board.board[x][y] += 1
-                board.put()
-            # Cell already shot
-            if cell == 1 or cell == 3:
-                form.message = 'shot'
-        # Coordinates were not correct
-        else:
-            form.message = 'Bad coordinates'
-        # Return the updated board
-        form.board = json.dumps(board.board)
-        return form
-
 
 class NewUserForm(messages.Message):
     """To create a new user"""
@@ -193,7 +208,7 @@ class GameForm(messages.Message):
 class NewShotForm(messages.Message):
     """To create a shot"""
     game = messages.StringField(1, required=True)
-    board = messages.StringField(2, required=True)
+    # board = messages.StringField(2, required=True)
     coordinates = messages.StringField(3, required=True)
 
 
