@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from google.appengine.ext import ndb
-from protorpc import messages
 from random import randint, choice
+from forms import GameForm, BoardForm, ShotForm
 import json
 
 
@@ -23,6 +23,7 @@ class Board(ndb.Model):
     """Board for the game"""
     user = ndb.KeyProperty(required=True, kind='User')
     board = ndb.JsonProperty(required=True)
+    history = ndb.JsonProperty(default=[])
 
     @classmethod
     def empty_board(cls, user):
@@ -44,6 +45,13 @@ class Board(ndb.Model):
         """Cancels a game in progress"""
         self.key.delete()
         return
+
+    def to_form(self):
+        """Returns a BoardForm representation of the Board"""
+        form = BoardForm()
+        form.user = User.query(User.key == self.user).get().name
+        form.history = json.dumps(self.history)
+        return form
 
     def add_ships(self, ships):
         """Adds a ship to an existing board"""
@@ -105,6 +113,7 @@ class Board(ndb.Model):
             if cell == 0:
                 form.message = 'miss'
                 self.board[x][y] += 1
+                self.history.append([coordinates, form.message])
                 self.put()
                 game.turn += 1
                 game.put()
@@ -115,6 +124,7 @@ class Board(ndb.Model):
             if cell == 2:
                 form.message = self.hit(x, y)
                 self.board[x][y] += 1
+                self.history.append([coordinates, form.message])
                 self.put()
         # Given coordinates are not right
         else:
@@ -210,55 +220,3 @@ class Game(ndb.Model):
         else:
             form.turn = User.query(User.key == self.user2).get().name
         return form
-
-
-class NewUserForm(messages.Message):
-    """To create a new user"""
-    user_name = messages.StringField(1, required=True)
-    email = messages.StringField(2)
-
-
-class NewGameForm(messages.Message):
-    """To create a new game"""
-    user1_name = messages.StringField(1, required=True)
-    user2_name = messages.StringField(2, required=True)
-    autoboard1 = messages.BooleanField(3, default=False)
-    autoboard2 = messages.BooleanField(4, default=False)
-
-
-class GameForm(messages.Message):
-    """GameForm for outbound game state information"""
-    urlsafe_key = messages.StringField(1, required=True)
-    board1 = messages.StringField(2, required=True)
-    board2 = messages.StringField(3, required=True)
-    turn = messages.StringField(4, required=True)
-
-
-class GameForms(messages.Message):
-    """Return multiple GameForms"""
-    items = messages.MessageField(GameForm, 1, repeated=True)
-
-
-class NewShotForm(messages.Message):
-    """To create a shot"""
-    game = messages.StringField(1, required=True)
-    # board = messages.StringField(2, required=True)
-    coordinates = messages.StringField(3, required=True)
-
-
-class ShotForm(messages.Message):
-    message = messages.StringField(1, required=True)
-    board = messages.StringField(2, required=True)
-
-
-class ScoreForm(messages.Message):
-    """ScoreForm for outbound Score information"""
-    user_name = messages.StringField(1, required=True)
-    date = messages.StringField(2, required=True)
-    won = messages.BooleanField(3, required=True)
-    guesses = messages.IntegerField(4, required=True)
-
-
-class StringMessage(messages.Message):
-    """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)

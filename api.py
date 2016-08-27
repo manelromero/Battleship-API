@@ -4,9 +4,9 @@
 import endpoints
 from protorpc import remote, messages
 from random import randint
-from models import User, Board, Game
-from models import StringMessage, NewUserForm, NewGameForm, GameForm,\
-    GameForms, NewShotForm, ShotForm
+from models import User, Board, Score, Game
+from forms import StringMessage, NewUserForm, NewGameForm, BoardForm,\
+    BoardForms, GameForm, GameForms, NewShotForm, ShotForm
 from utils import get_by_urlsafe
 
 
@@ -129,14 +129,22 @@ class BattleshipApi(remote.Service):
         """Returns a leader-board"""
 
     @endpoints.method(
-        request_message=endpoints.ResourceContainer(GameForm),
-        response_message=StringMessage,
-        path='get_game_history',
+        request_message=endpoints.ResourceContainer(
+            game_key=messages.StringField(1)
+            ),
+        response_message=BoardForms,
+        path='game/history/{game_key}',
         name='get_game_history',
         http_method='GET'
         )
-    def get_game_history():
+    def get_game_history(self, request):
         """Returns a game movement's history"""
+        game = get_by_urlsafe(request.game_key, Game)
+        boards = []
+        board1 = Board.query(Board.key == game.board1).get()
+        board2 = Board.query(Board.key == game.board2).get()
+        boards += [board1, board2]
+        return BoardForms(boards=[board.to_form() for board in boards])
 
 
 api = endpoints.api_server([BattleshipApi])
