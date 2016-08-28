@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""api.py"""
+
 
 import endpoints
 from protorpc import remote, messages
@@ -42,13 +42,13 @@ class BattleshipApi(remote.Service):
         )
     def create_game(self, request):
         """Creates a new game"""
-        user1 = User.query(User.name == request.user1_name).get()
-        user2 = User.query(User.name == request.user2_name).get()
         # Check if users exist
+        user1 = User.query(User.name == request.user1_name).get()
         if not user1:
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user1_name)
                 )
+        user2 = User.query(User.name == request.user2_name).get()
         if not user2:
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user2_name)
@@ -96,8 +96,8 @@ class BattleshipApi(remote.Service):
     def get_user_games(self, request):
         """Returns all user's active games"""
         user = User.query(User.name == request.user_name).get()
-        games = user.get_user_games()
-        return GameForms(items=[game.to_form() for game in games])
+        user_games = user.get_user_games()
+        return GameForms(games=[game.to_form() for game in user_games])
 
     @endpoints.method(
         request_message=endpoints.ResourceContainer(

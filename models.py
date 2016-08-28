@@ -3,6 +3,7 @@
 from google.appengine.ext import ndb
 from random import randint, choice
 from forms import GameForm, BoardForm, ShotForm
+import endpoints
 import json
 
 
@@ -13,16 +14,17 @@ class User(ndb.Model):
 
     def get_user_games(self):
         """Gets all user's games"""
-        games = Game.query(ndb.OR(
+        user_games = Game.query(ndb.OR(
             Game.user1 == self.key, Game.user2 == self.key)
             )
-        return games
+        return user_games
 
 
 class Board(ndb.Model):
     """Board for the game"""
     user = ndb.KeyProperty(required=True, kind='User')
     board = ndb.JsonProperty(required=True)
+    ships = ndb.IntegerProperty(default=0)
     history = ndb.JsonProperty(default=[])
 
     @classmethod
@@ -36,9 +38,18 @@ class Board(ndb.Model):
         return board
 
     def auto_board(self):
-        """Randomly creates ships in a board"""
-        self.add_ships([5, 4, 3, 2, 2, 1, 1])
-        self.put()
+        """Randomly places ships in a board"""
+        # Check if the board is empty
+        cells_sum = 0
+        for element in self.board:
+            cells_sum += sum(element)
+        # Add ships if empty
+        if cells_sum == 0:
+            self.add_ships([5, 4, 3, 2, 2, 1, 1])
+            self.put()
+        # Raise error if not empty
+        else:
+            raise endpoints.ConflictException('Board is not empty')
         return self
 
     def cancel_board(self):
@@ -51,11 +62,13 @@ class Board(ndb.Model):
         form = BoardForm()
         form.user = User.query(User.key == self.user).get().name
         form.history = json.dumps(self.history)
+        form.ships = str(self.ships)
         return form
 
     def add_ships(self, ships):
-        """Adds a ship to an existing board"""
+        """Adds ships to an existing board"""
         for ship, ship_length in enumerate(ships):
+            self.ships += ship_length
             success = False
             while not success:
                 # Horizontal(hz) or vertical?
@@ -76,7 +89,7 @@ class Board(ndb.Model):
                                     if value > 0:
                                         free_space = False
                                 except IndexError:
-                                    # Index 10 doesn't exist, it's ok not to check
+                                    # For index greater than 10
                                     pass
                         else:
                             # Check if the chosen position is in the first col
@@ -87,7 +100,7 @@ class Board(ndb.Model):
                                     if value > 0:
                                         free_space = False
                                 except IndexError:
-                                    # Index 10 doesn't exist, it's ok not to check
+                                    # For index greater than 10
                                     pass
                 # Place the ship
                 if free_space:
@@ -123,6 +136,9 @@ class Board(ndb.Model):
             # Hit
             if cell == 2:
                 form.message = self.hit(x, y)
+                self.ships -= 1
+                if self.ships == 0:
+                    game.game_over()
                 self.board[x][y] += 1
                 self.history.append([coordinates, form.message])
                 self.put()
@@ -154,6 +170,8 @@ class Board(ndb.Model):
 
     def layout(self):
         """Returns board layout"""
+        user = User.query(User.key == self.user).get()
+        print '\nBoard of', user.name
         options = {0: '   │', 1: ' x │', 2: ' ☐ │', 3: ' ⊠ │'}
         board = '   1   2   3   4   5   6   7   8   9   10\n'
         board += ' ┌─' + '──┬─' * 9 + '──┐\n'
@@ -209,14 +227,25 @@ class Game(ndb.Model):
         self.key.delete()
         return
 
+    def game_over(self):
+        """Finishes a game and updates the score"""
+        self.game_over = True
+        if self.turn % 2 == 0:
+            winer = User.query(User.key == self.user2).get().name
+        else:
+            winner = User.query(User.key == self.user1).get().name
+
+        print '\n\n\n\n'
+        print 'Winner:', winner
+
     def to_form(self):
         """Returns a GameForm representation of the Game"""
         form = GameForm()
-        form.urlsafe_key = self.key.urlsafe()
+        form.key = self.key.urlsafe()
         form.board1 = json.dumps(self.board1.get().board)
         form.board2 = json.dumps(self.board2.get().board)
         if self.turn % 2 == 0:
-            form.turn = User.query(User.key == self.user1).get().name
-        else:
             form.turn = User.query(User.key == self.user2).get().name
+        else:
+            form.turn = User.query(User.key == self.user1).get().name
         return form

@@ -19,7 +19,7 @@ class NewGameForm(messages.Message):
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
-    urlsafe_key = messages.StringField(1, required=True)
+    key = messages.StringField(1, required=True)
     board1 = messages.StringField(2, required=True)
     board2 = messages.StringField(3, required=True)
     turn = messages.StringField(4, required=True)
@@ -27,13 +27,14 @@ class GameForm(messages.Message):
 
 class GameForms(messages.Message):
     """Return multiple GameForms"""
-    items = messages.MessageField(GameForm, 1, repeated=True)
+    games = messages.MessageField(GameForm, 1, repeated=True)
 
 
 class BoardForm(messages.Message):
     """BoardForm for outbound board state information"""
     user = messages.StringField(1, required=True)
     history = messages.StringField(2, required=True)
+    ships = messages.StringField(3, required=True)
 
 
 class BoardForms(messages.Message):
