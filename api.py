@@ -68,13 +68,50 @@ class BattleshipApi(remote.Service):
         return game.to_form()
 
     @endpoints.method(
-        request_message=endpoints.ResourceContainer(NewShotForm),
-        response_message=ShotForm,
-        path='board',
-        name='shot',
+        request_message=endpoints.ResourceContainer(
+            game_key=messages.StringField(1)
+            ),
+        response_message=BoardForms,
+        path='game/history/{game_key}',
+        name='get_game_history',
+        http_method='GET'
+        )
+    def get_game_history(self, request):
+        """Returns a game movement's history"""
+        game = get_by_urlsafe(request.game_key, Game)
+        boards = []
+        board1 = Board.query(Board.key == game.board1).get()
+        board2 = Board.query(Board.key == game.board2).get()
+        boards += [board1, board2]
+        return BoardForms(boards=[board.to_form() for board in boards])
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(
+            game_key=messages.StringField(1)
+            ),
+        response_message=StringMessage,
+        path='game/cancel/{game_key}',
+        name='cancel_game',
         http_method='POST'
         )
-    def shot(self, request):
+    def cancel_game(self, request):
+        """Cancels a game in progress"""
+        game = get_by_urlsafe(request.game_key, Game)
+        board1 = Board.query(Board.key == game.board1).get()
+        board2 = Board.query(Board.key == game.board2).get()
+        game.cancel_game()
+        board1.cancel_board()
+        board2.cancel_board()
+        return StringMessage(message='Game canceled')
+
+    @endpoints.method(
+        request_message=endpoints.ResourceContainer(NewShotForm),
+        response_message=ShotForm,
+        path='shoot',
+        name='shoot',
+        http_method='POST'
+        )
+    def shoot(self, request):
         """Fires a shot"""
         game = get_by_urlsafe(request.game, Game)
         turn = game.turn % 2
@@ -100,25 +137,6 @@ class BattleshipApi(remote.Service):
         return GameForms(games=[game.to_form() for game in user_games])
 
     @endpoints.method(
-        request_message=endpoints.ResourceContainer(
-            game_key=messages.StringField(1)
-            ),
-        response_message=StringMessage,
-        path='game/cancel/{game_key}',
-        name='cancel_game',
-        http_method='POST'
-        )
-    def cancel_game(self, request):
-        """Cancels a game in progress"""
-        game = get_by_urlsafe(request.game_key, Game)
-        board1 = Board.query(Board.key == game.board1).get()
-        board2 = Board.query(Board.key == game.board2).get()
-        game.cancel_game()
-        board1.cancel_board()
-        board2.cancel_board()
-        return StringMessage(message='Game canceled')
-
-    @endpoints.method(
         request_message=endpoints.ResourceContainer(),
         response_message=StringMessage,
         path='get_high_scores',
@@ -127,24 +145,5 @@ class BattleshipApi(remote.Service):
         )
     def get_high_scores():
         """Returns a leader-board"""
-
-    @endpoints.method(
-        request_message=endpoints.ResourceContainer(
-            game_key=messages.StringField(1)
-            ),
-        response_message=BoardForms,
-        path='game/history/{game_key}',
-        name='get_game_history',
-        http_method='GET'
-        )
-    def get_game_history(self, request):
-        """Returns a game movement's history"""
-        game = get_by_urlsafe(request.game_key, Game)
-        boards = []
-        board1 = Board.query(Board.key == game.board1).get()
-        board2 = Board.query(Board.key == game.board2).get()
-        boards += [board1, board2]
-        return BoardForms(boards=[board.to_form() for board in boards])
-
 
 api = endpoints.api_server([BattleshipApi])
