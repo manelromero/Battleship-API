@@ -28,29 +28,17 @@ class Board(ndb.Model):
     history = ndb.JsonProperty(default=[])
 
     @classmethod
-    def empty_board(cls, user):
-        """Creates and returns an empty board"""
+    def new_board(cls, user):
+        """Creates and returns a new board"""
         empty_board = []
         for row in xrange(0, 10):
             empty_board.append([0] * 10)
         board = Board(user=user, board=empty_board)
+        # Add ships (modify list for different ships)
+        board.add_ships([5, 4, 3, 2, 2, 1, 1])
         board.put()
+        print board.layout()
         return board
-
-    def auto_board(self):
-        """Randomly places ships in a board"""
-        # Check if the board is empty
-        cells_sum = 0
-        for element in self.board:
-            cells_sum += sum(element)
-        # Add ships if empty
-        if cells_sum == 0:
-            self.add_ships([5, 4, 3, 2, 2, 1, 1])
-            self.put()
-        # Raise error if not empty
-        else:
-            raise endpoints.ConflictException('Board is not empty')
-        return self
 
     def cancel_board(self):
         """Cancels a game in progress"""
@@ -66,9 +54,8 @@ class Board(ndb.Model):
         return form
 
     def add_ships(self, ships):
-        """Adds ships to an existing board"""
+        """Ramdonly adds ships to an existing board"""
         for ship, ship_length in enumerate(ships):
-            self.ships += ship_length
             success = False
             while not success:
                 # Horizontal(hz) or vertical?
@@ -76,7 +63,7 @@ class Board(ndb.Model):
                 # Start cell
                 row = randint(0, 9 * hz + (10 - ship_length) * (not hz))
                 col = randint(0, 9 * (not hz) + (10 - ship_length) * hz)
-                # Check if there is free space
+                # Check free space around the ship placement
                 free_space = True
                 for l in xrange(-1, ship_length + 1):
                     for w in xrange(-1, 2):
@@ -109,6 +96,8 @@ class Board(ndb.Model):
                             self.board[row][col + l] = 2
                         else:
                             self.board[row + l][col] = 2
+                    # Increase board.ships by ship_length
+                    self.ships += ship_length
                     self.put()
                     # success is now True so while loop stops
                     success = True
@@ -135,13 +124,14 @@ class Board(ndb.Model):
                 form.message = 'shot'
             # Hit
             if cell == 2:
-                form.message = self.hit(x, y)
+                form.message = self.check_hit(x, y)
                 self.ships -= 1
-                if self.ships == 0:
-                    game.game_over()
                 self.board[x][y] += 1
                 self.history.append([coordinates, form.message])
                 self.put()
+                # Check if all ships are sunk
+                if self.ships == 0:
+                    game.finish_game()
         # Given coordinates are not right
         else:
             form.message = 'Bad coordinates'
@@ -150,7 +140,7 @@ class Board(ndb.Model):
         print self.layout()
         return form
 
-    def hit(self, x, y):
+    def check_hit(self, x, y):
         """Checks if a hit sinks a ship"""
         sunk = True
         # Check up
@@ -165,15 +155,59 @@ class Board(ndb.Model):
                     ship = False
                     break
                 i -= 1
+        # Check down
+        ship = True
+        while ship:
+            i = 1
+            while i < 10:
+                try:
+                    value = self.board[x + i][y]
+                except:
+                    ship = False
+                    break
+                if value == 2:
+                    sunk = False
+                elif value == 0 or value == 1:
+                    ship = False
+                    break
+                i += 1
+        # Check left
+        ship = True
+        while ship:
+            i = -1
+            while i > -10:
+                value = self.board[x][y + i]
+                if value == 2:
+                    sunk = False
+                elif value == 0 or value == 1:
+                    ship = False
+                    break
+                i -= 1
+        # Check right
+        ship = True
+        while ship:
+            i = 1
+            while i > -10:
+                try:
+                    value = self.board[x][y + i]
+                except:
+                    ship = False
+                    break
+                if value == 2:
+                    sunk = False
+                elif value == 0 or value == 1:
+                    ship = False
+                    break
+                i += 1
         message = 'sunk' if sunk else 'hit'
         return message
 
     def layout(self):
-        """Returns board layout"""
+        """Returns board layout (for debug)"""
         user = User.query(User.key == self.user).get()
-        print '\nBoard of', user.name
         options = {0: '   │', 1: ' x │', 2: ' ☐ │', 3: ' ⊠ │'}
-        board = '   1   2   3   4   5   6   7   8   9   10\n'
+        board = '\nBoard of ' + str(user.name)
+        board += '\n   1   2   3   4   5   6   7   8   9   10\n'
         board += ' ┌─' + '──┬─' * 9 + '──┐\n'
         for x in xrange(0, 10):
             board += chr(x + 65) + '│'
@@ -206,7 +240,7 @@ class Game(ndb.Model):
     board1 = ndb.KeyProperty(required=True, kind='Board')
     board2 = ndb.KeyProperty(required=True, kind='Board')
     turn = ndb.IntegerProperty()
-    game_over = ndb.BooleanProperty(required=True, default=False)
+    game_over = ndb.BooleanProperty(default=False)
 
     @classmethod
     def new_game(cls, user1, user2, board1, board2):
@@ -227,16 +261,18 @@ class Game(ndb.Model):
         self.key.delete()
         return
 
-    def game_over(self):
+    def finish_game(self):
         """Finishes a game and updates the score"""
         self.game_over = True
+        self.put()
         if self.turn % 2 == 0:
             winer = User.query(User.key == self.user2).get().name
         else:
             winner = User.query(User.key == self.user1).get().name
 
-        print '\n\n\n\n'
-        print 'Winner:', winner
+        print '\n\n\n'
+        print 'WINNER:', winner
+        return
 
     def to_form(self):
         """Returns a GameForm representation of the Game"""
@@ -248,4 +284,5 @@ class Game(ndb.Model):
             form.turn = User.query(User.key == self.user2).get().name
         else:
             form.turn = User.query(User.key == self.user1).get().name
+        form.game_over = self.game_over
         return form

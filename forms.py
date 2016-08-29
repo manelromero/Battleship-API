@@ -13,8 +13,6 @@ class NewGameForm(messages.Message):
     """To create a new game"""
     user1_name = messages.StringField(1, required=True)
     user2_name = messages.StringField(2, required=True)
-    autoboard1 = messages.BooleanField(3, default=False)
-    autoboard2 = messages.BooleanField(4, default=False)
 
 
 class GameForm(messages.Message):
@@ -23,6 +21,7 @@ class GameForm(messages.Message):
     board1 = messages.StringField(2, required=True)
     board2 = messages.StringField(3, required=True)
     turn = messages.StringField(4, required=True)
+    game_over = messages.BooleanField(5, required=True)
 
 
 class GameForms(messages.Message):

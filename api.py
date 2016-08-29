@@ -53,13 +53,8 @@ class BattleshipApi(remote.Service):
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user2_name)
                 )
-        board1 = Board.empty_board(user1.key)
-        board2 = Board.empty_board(user2.key)
-        # Check if we need to generate automatic boards
-        if request.autoboard1:
-            board1.auto_board()
-        if request.autoboard2:
-            board2.auto_board()
+        board1 = Board.new_board(user1.key)
+        board2 = Board.new_board(user2.key)
         # Generate new game
         try:
             game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
