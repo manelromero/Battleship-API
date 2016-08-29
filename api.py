@@ -140,11 +140,11 @@ class BattleshipApi(remote.Service):
     @endpoints.method(
         request_message=endpoints.ResourceContainer(),
         response_message=ScoreForms,
-        path='get_high_scores',
-        name='get_high_scores',
+        path='get_user_rankings',
+        name='get_user_rankings',
         http_method='GET'
         )
-    def get_high_scores(self, request):
+    def get_user_rankings(self, request):
         """Returns a leader-board"""
         users = User.query()
         users.order(User.victories).fetch()
