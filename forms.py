@@ -15,8 +15,14 @@ class NewGameForm(messages.Message):
     user2_name = messages.StringField(2, required=True)
 
 
+class NewShotForm(messages.Message):
+    """To create a new shot"""
+    game = messages.StringField(1, required=True)
+    coordinates = messages.StringField(3, required=True)
+
+
 class GameForm(messages.Message):
-    """GameForm for outbound game state information"""
+    """Form for outbound game state information"""
     key = messages.StringField(1, required=True)
     board1 = messages.StringField(2, required=True)
     board2 = messages.StringField(3, required=True)
@@ -25,39 +31,37 @@ class GameForm(messages.Message):
 
 
 class GameForms(messages.Message):
-    """Return multiple GameForms"""
+    """For multiple GameForm"""
     games = messages.MessageField(GameForm, 1, repeated=True)
 
 
 class BoardForm(messages.Message):
-    """BoardForm for outbound board state information"""
+    """Form for outbound board state information"""
     user = messages.StringField(1, required=True)
     history = messages.StringField(2, required=True)
     ships = messages.StringField(3, required=True)
 
 
 class BoardForms(messages.Message):
-    """Return multiple BoardForms"""
+    """For multiple BoardForm"""
     boards = messages.MessageField(BoardForm, 1, repeated=True)
 
 
-class NewShotForm(messages.Message):
-    """To create a shot"""
-    game = messages.StringField(1, required=True)
-    coordinates = messages.StringField(3, required=True)
-
-
 class ShotForm(messages.Message):
+    """Form for outbound shot result information"""
     message = messages.StringField(1, required=True)
     board = messages.StringField(2, required=True)
 
 
 class ScoreForm(messages.Message):
-    """ScoreForm for outbound Score information"""
+    """Form for outbound board state information"""
     user_name = messages.StringField(1, required=True)
-    date = messages.StringField(2, required=True)
-    won = messages.BooleanField(3, required=True)
-    guesses = messages.IntegerField(4, required=True)
+    victories = messages.IntegerField(2, required=True)
+
+
+class ScoreForms(messages.Message):
+    """For multiple ScoreForm"""
+    user = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
 class StringMessage(messages.Message):

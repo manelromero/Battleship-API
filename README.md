@@ -4,14 +4,7 @@ Battleship game is played on two grids, one for each player. The grid size is 10
 
 Before play begins, each player secretly arranges their ships on their primary grid. Each ship occupies a number of consecutive squares on the grid, arranged either horizontally or vertically. The number of squares for each ship is determined by the type of the ship. The ships cannot overlap (i.e., only one ship can occupy any given square in the grid). The types and numbers of ships allowed are the same for each player.
 
-This is the default number of ships for each player:
-Ships|Ship class|Size
------|----------|----
-1|Aircraft carrier|5
-1|Battleship|4
-1|Cruiser|3
-2|Destroyer|2
-2|Submarine|1
+The default number of ships for each player is one aircraft carrier(5 cells long), one battleship(4), one cruiser(3), two destroyers(2) and two submarines(1). This ships can be changed in the ´new_board´ method of the ´Board´ class.
 
 After the ships have been positioned, the game proceeds in a series of rounds. In each round, each player takes a turn to announce a target square in the opponent's grid which is to be shot at. The opponent announces whether or not the square is occupied by a ship, and if it is a "miss", the player marks their primary grid with a white peg; if a "hit" they mark this on their own primary grid with a red peg. The attacking player notes the hit or miss on their own "tracking" grid with the appropriate color peg (red for "hit", white for "miss"), in order to build up a picture of the opponent's fleet.
 When all of the squares of a ship have been hit, the ship is sunk, and the ship's owner announces this (e.g. "You sank my battleship!"). If all of a player's ships have been sunk, the game is over and their opponent wins.
@@ -78,9 +71,9 @@ Many different Guess a Number games can be played by many different Users at any
     If this causes a game to end, a corresponding Score entity will be created.
 
 - **get_high_scores**
- - Path: 'scores/user/{user_name}'
+ - Path: 'get_high_scores'
  - Method: GET
- - Parameters: user_name
+ - Parameters: None
  - Returns: ScoreForms. 
  - Description: Returns all Scores recorded by the provided player (unordered).
     Will raise a NotFoundException if the User does not exist.
@@ -90,8 +83,6 @@ Many different Guess a Number games can be played by many different Users at any
  - Stores unique user_name and (optional) email address.
 - **Board**
  - Stores unique game states. Associated with User model via KeyProperty.
-- **Score**
- - Records completed games. Associated with Users model via KeyProperty.
 - **Game**
  - Stores... 
 
@@ -101,7 +92,7 @@ Many different Guess a Number games can be played by many different Users at any
     game_over flag, message, user_name).
 - **NewGameForm**
  - Used to create a new game (user_name, min, max, attempts)
-- **MakeMoveForm**
+- **NewShotForm**
  - Inbound make move form (guess).
 - **GameForm**
  - Representation of a completed game's Score (user_name, date, won flag,
@@ -112,11 +103,11 @@ Many different Guess a Number games can be played by many different Users at any
  - General purpose String container.
 - **BoardForms**
  - General purpose String container.
-- **NewShotForm**
- - General purpose String container.
 - **ShotForm**
  - General purpose String container.
 - **ScoreForm**
+ - General purpose String container.
+- **ScoreForms**
  - General purpose String container.
 - **StringMessage**
  - General purpose String container.

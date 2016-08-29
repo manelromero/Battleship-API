@@ -2,14 +2,15 @@
 
 from google.appengine.ext import ndb
 from random import randint, choice
-from forms import GameForm, BoardForm, ShotForm
-import endpoints
+from forms import GameForm, BoardForm, ShotForm, ScoreForm
 import json
+import time
 
 
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
+    victories = ndb.IntegerProperty(default=0)
     email = ndb.StringProperty()
 
     def get_user_games(self):
@@ -18,6 +19,13 @@ class User(ndb.Model):
             Game.user1 == self.key, Game.user2 == self.key)
             )
         return user_games
+
+    def to_form(self):
+        """Returns a ScoreForm representation of the user"""
+        form = ScoreForm()
+        form.user_name = self.name
+        form.victories = self.victories
+        return form
 
 
 class Board(ndb.Model):
@@ -37,7 +45,6 @@ class Board(ndb.Model):
         # Add ships (modify list for different ships)
         board.add_ships([5, 4, 3, 2, 2, 1, 1])
         board.put()
-        print board.layout()
         return board
 
     def cancel_board(self):
@@ -103,8 +110,10 @@ class Board(ndb.Model):
                     success = True
         return self
 
-    def shot(self, game, coordinates):
+    def shoot(self, game, coordinates):
         """Returns the result of a shot"""
+        if game.game_over:
+            raise endpoints.ConflictException('Game is already over')
         form = ShotForm()
         x = ord(coordinates[0]) - 65
         y = int(coordinates[1:]) - 1
@@ -148,12 +157,15 @@ class Board(ndb.Model):
         while ship:
             i = -1
             while i > -10:
-                value = self.board[x + i][y]
-                if value == 2:
-                    sunk = False
-                elif value == 0 or value == 1:
+                if x + i >= 0:
+                    value = self.board[x + i][y]
+                    if value == 2:
+                        sunk = False
+                    elif value == 0 or value == 1:
+                        ship = False
+                        break
+                else:
                     ship = False
-                    break
                 i -= 1
         # Check down
         ship = True
@@ -176,12 +188,15 @@ class Board(ndb.Model):
         while ship:
             i = -1
             while i > -10:
-                value = self.board[x][y + i]
-                if value == 2:
-                    sunk = False
-                elif value == 0 or value == 1:
+                if y + i >= 0:
+                    value = self.board[x][y + i]
+                    if value == 2:
+                        sunk = False
+                    elif value == 0 or value == 1:
+                        ship = False
+                        break
+                else:
                     ship = False
-                    break
                 i -= 1
         # Check right
         ship = True
@@ -221,18 +236,6 @@ class Board(ndb.Model):
         return board
 
 
-class Score(ndb.Model):
-    """Score"""
-    user = ndb.KeyProperty(required=True, kind='User')
-    date = ndb.DateProperty(required=True)
-    won = ndb.BooleanProperty(required=True)
-    guesses = ndb.IntegerProperty(required=True)
-
-    def to_form(self):
-        return ScoreForm(user_name=self.user.get().name, won=self.won,
-                         date=str(self.date), guesses=self.guesses)
-
-
 class Game(ndb.Model):
     """Game"""
     user1 = ndb.KeyProperty(required=True, kind='User')
@@ -266,12 +269,11 @@ class Game(ndb.Model):
         self.game_over = True
         self.put()
         if self.turn % 2 == 0:
-            winer = User.query(User.key == self.user2).get().name
+            winner = User.query(User.key == self.user2).get()
         else:
-            winner = User.query(User.key == self.user1).get().name
-
-        print '\n\n\n'
-        print 'WINNER:', winner
+            winner = User.query(User.key == self.user1).get()
+        winner.victories += 1
+        winner.put()
         return
 
     def to_form(self):

@@ -4,9 +4,9 @@
 import endpoints
 from protorpc import remote, messages
 from random import randint
-from models import User, Board, Score, Game
-from forms import StringMessage, NewUserForm, NewGameForm, BoardForm,\
-    BoardForms, GameForm, GameForms, NewShotForm, ShotForm
+from models import User, Board, Game
+from forms import NewUserForm, NewGameForm, NewShotForm, GameForm, GameForms,\
+    BoardForm, BoardForms, ShotForm, ScoreForm, ScoreForms, StringMessage
 from utils import get_by_urlsafe
 
 
@@ -74,6 +74,8 @@ class BattleshipApi(remote.Service):
     def get_game_history(self, request):
         """Returns a game movement's history"""
         game = get_by_urlsafe(request.game_key, Game)
+        if not game:
+            raise endpoints.NotFoundException("Game doesn't exist")
         boards = []
         board1 = Board.query(Board.key == game.board1).get()
         board2 = Board.query(Board.key == game.board2).get()
@@ -109,12 +111,14 @@ class BattleshipApi(remote.Service):
     def shoot(self, request):
         """Fires a shot"""
         game = get_by_urlsafe(request.game, Game)
+        if not game:
+            raise endpoints.NotFoundException("Game doesn't exist")
         turn = game.turn % 2
         if turn == 0:
             board = game.board1.get()
         else:
             board = game.board2.get()
-        return board.shot(game, request.coordinates)
+        return board.shoot(game, request.coordinates)
 
     @endpoints.method(
         request_message=endpoints.ResourceContainer(
@@ -128,17 +132,23 @@ class BattleshipApi(remote.Service):
     def get_user_games(self, request):
         """Returns all user's active games"""
         user = User.query(User.name == request.user_name).get()
+        if not user:
+            raise endpoints.NotFoundException("User doesn't exist")
         user_games = user.get_user_games()
         return GameForms(games=[game.to_form() for game in user_games])
 
     @endpoints.method(
         request_message=endpoints.ResourceContainer(),
-        response_message=StringMessage,
+        response_message=ScoreForms,
         path='get_high_scores',
         name='get_high_scores',
         http_method='GET'
         )
-    def get_high_scores():
+    def get_high_scores(self, request):
         """Returns a leader-board"""
+        users = User.query()
+        users.order(User.victories).fetch()
+        return ScoreForms(user=[user.to_form() for user in users])
+
 
 api = endpoints.api_server([BattleshipApi])
