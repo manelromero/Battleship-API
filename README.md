@@ -1,21 +1,21 @@
 #Battleship game API project
 ##Game Description:
-Battleship game is played on two grids, one for each player. The grid size is 10×10 cells and the individual squares in the grid are identified by letter and number (e.g. 'B6').
+Battleship game is played on two grids, one for each player. The grid size is 10×10 cells and the individual squares in the grid are identified by letter and number (e.g., 'B6').
 
 Each player arranges their ships on his grid. Each ship occupies a number of consecutive squares on the grid, arranged either horizontally or vertically. The number of squares for each ship is determined by the type of the ship. The ships cannot overlap (i.e., only one ship can occupy any given square in the grid). The types and numbers of ships allowed are the same for each player.
 
-The default number of ships for each player is one aircraft carrier(5 cells long), one battleship(4), one cruiser(3), two destroyers(2) and two submarines(1). This ships can be changed in the `new_board` method of the `Board` class.
+The default number of ships for each player is one aircraft carrier(5 cells long), one battleship(4), one cruiser(3), two destroyers(2) and two submarines(1). These ships can be changed in the `new_board` method of the `Board` class.
 
-After the ships have been positioned, the game proceeds in a series of rounds. In each round, each player takes a turn to announce a target square in the opponent's grid which is to be shot at. The opponent announces whether or not the square is occupied by a ship, and if it is a "miss", the player marks their primary grid with a white peg; if a "hit" they mark this on their own primary grid with a red peg. The attacking player notes the hit or miss on their own "tracking" grid with the appropriate color peg (red for "hit", white for "miss"), in order to build up a picture of the opponent's fleet.
+After the ships have been positioned, the game proceeds in a series of rounds. In each round, each player takes a turn to announce a target square in the opponent's grid which is to be shot at. The opponent announces whether or not the square is occupied by a ship. The attacking player notes the hit or miss on their own "tracking" grid with the appropriate way in order to build up a picture of the opponent's fleet.
 
-When all of the squares of a ship have been hit, the ship is sunk, and the ship's owner announces this (e.g. "You sank my battleship!"). If all of a player's ships have been sunk, the game is over and their opponent wins.
+When all of the squares of a ship have been hit, the ship is sunk, and the ship's owner announces this (e.g., "You sank my battleship!"). If all of a player's ships have been sunk, the game is over and their opponent wins.
 
 ##Files Included:
 - **app.yaml**: App configuration.
 - **cron.yaml**: Cron job configuration.
 - **index.yaml**: Entities configuration.
 - **main.py**: Handler for cron job.
-- **models.py**: Entity and message definitions including helper methods.
+- **models.py**: Entities definitions including helper methods.
 - **forms.py**: Forms definitions.
 - **api.py**: Contains endpoints and game playing logic.
 - **utils.py**: Helper function for retrieving ndb.Models by urlsafe Key string.
@@ -74,7 +74,7 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
 
 ##Models Included:
 - **User**
- - Stores unique user_name and (optional) email address.
+ - Stores unique `user_name` and (optional) `email` address.
 - **Board**
  - Stores unique boards, automatically generated for using in games. Associated with User model via KeyProperty. Contains `board`, a list of lists with cells information, `ships` with the amount of cells remaining to hit and `history` with all shots fired to the board so far.
 - **Game**

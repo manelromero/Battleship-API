@@ -20,7 +20,7 @@ class BattleshipApi(remote.Service):
         http_method='POST'
         )
     def create_user(self, request):
-        """Creates a new user, requires a unique username"""
+        """Creates a new user, requires a unique user name"""
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!'
