@@ -124,9 +124,9 @@ Fires a shot. Checks if the game exists and is not over, if the coordinates are 
 There are four possible responses:
 
 - **miss**, when an empty cell is hit. The turn changes to the other player.
-- **hit**, when a cell that is part of a ship is hit but there are others cells of the same ship that has not been hit yet. The turn does not change until the player shots a 'miss' or finishes the game.
+- **hit**, when a ship's cell is hit but there are others cells of the same ship that have not been hit yet. The turn does not change until the player shots a 'miss' or finishes the game.
 - **sunk**, when a cell is the last of a ship. The turn does not change until the player shots a 'miss' or finishes the game.
-- **shot**, when the cell was already hit before. The turn does not change. Is the same player turn until a valid cell is shot.
+- **shot**, when the cell was already hit before. The turn does not change. Is the same player's turn until a valid cell is shot.
 
 ```
 
@@ -158,7 +158,7 @@ Returns all active games for a given user.
 
 ###`get_user_rankings`
 ####Description
-Returns a leader board of all users.
+Returns a leader board of all users ordered by victories.
 ####Request URL
 `GET http://localhost:8080/_ah/api/battleship/1.0/get_user_rankings`
 ####Response

@@ -1,5 +1,5 @@
 #Battleship game API project
-For instructions about how to use this API, please [go here](https://github.com/manelromero/Battleship-API/blob/master/API.md).
+For instructions about how to use this API [go here](https://github.com/manelromero/Battleship-API/blob/master/API.md).
 ##Game Description:
 Battleship game is played on two grids, one for each player. The grid size is 10×10 cells and the individual squares in the grid are identified by letter and number (e.g., 'B6').
 
