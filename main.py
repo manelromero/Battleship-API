@@ -7,8 +7,8 @@ from models import User, Game
 
 class SendReminderEmail(webapp2.RequestHandler):
     def get(self):
-        """Send a reminder email to each User with an email about games.
-        Called every hour using a cron job"""
+        """Send a reminder email to any User with unfinished games.
+        Called every 24 hours using a cron job"""
         app_id = app_identity.get_application_id()
         users = self.get_users()
         for user in users:
@@ -24,7 +24,7 @@ class SendReminderEmail(webapp2.RequestHandler):
                 )
 
     def get_users(self):
-        """Get users with unfinished games and email for reminder"""
+        """Get users with unfinished games and email address for reminder"""
         users = []
         games = Game.query(Game.game_over == False).fetch()
         for game in games:

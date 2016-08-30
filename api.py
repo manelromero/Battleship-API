@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-
 import endpoints
 from protorpc import remote, messages
-from random import randint
 from models import User, Board, Game
 from forms import NewUserForm, NewGameForm, NewShotForm, GameForm, GameForms,\
-    BoardForm, BoardForms, ShotForm, ScoreForm, ScoreForms, StringMessage
+    BoardForms, ScoreForms, StringMessage
 from utils import get_by_urlsafe
 
 
@@ -22,7 +20,7 @@ class BattleshipApi(remote.Service):
         http_method='POST'
         )
     def create_user(self, request):
-        """Create a new user, requires a unique username"""
+        """Creates a new user, requires a unique username"""
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!'
@@ -53,13 +51,11 @@ class BattleshipApi(remote.Service):
             raise endpoints.NotFoundException(
                 "User {} doesn't exist".format(request.user2_name)
                 )
+        # Create boards
         board1 = Board.new_board(user1.key)
         board2 = Board.new_board(user2.key)
         # Generate new game
-        try:
-            game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
-        except ValueError:
-            raise endpoints.BadRequestException('Something went wrong')
+        game = Game.new_game(user1.key, user2.key, board1.key, board2.key)
         return game.to_form()
 
     @endpoints.method(
@@ -72,10 +68,12 @@ class BattleshipApi(remote.Service):
         http_method='GET'
         )
     def get_game_history(self, request):
-        """Returns a game movement's history"""
+        """Returns a game shot history"""
         game = get_by_urlsafe(request.game_key, Game)
+        # Check if game exists
         if not game:
             raise endpoints.NotFoundException("Game doesn't exist")
+        # Create a list with both boards
         boards = []
         board1 = Board.query(Board.key == game.board1).get()
         board2 = Board.query(Board.key == game.board2).get()
@@ -93,9 +91,14 @@ class BattleshipApi(remote.Service):
         )
     def cancel_game(self, request):
         """Cancels a game in progress"""
+        # Get game and boards
         game = get_by_urlsafe(request.game_key, Game)
+        # Check if game exists
+        if not game:
+            raise endpoints.NotFoundException("Game doesn't exist")
         board1 = Board.query(Board.key == game.board1).get()
         board2 = Board.query(Board.key == game.board2).get()
+        # Cancel them all
         game.cancel_game()
         board1.cancel_board()
         board2.cancel_board()
@@ -103,7 +106,7 @@ class BattleshipApi(remote.Service):
 
     @endpoints.method(
         request_message=endpoints.ResourceContainer(NewShotForm),
-        response_message=ShotForm,
+        response_message=StringMessage,
         path='shoot',
         name='shoot',
         http_method='POST'
@@ -111,8 +114,10 @@ class BattleshipApi(remote.Service):
     def shoot(self, request):
         """Fires a shot"""
         game = get_by_urlsafe(request.game, Game)
+        # Check if game exists
         if not game:
             raise endpoints.NotFoundException("Game doesn't exist")
+        # Find out whose turn is
         turn = game.turn % 2
         if turn == 0:
             board = game.board1.get()
@@ -132,6 +137,7 @@ class BattleshipApi(remote.Service):
     def get_user_games(self, request):
         """Returns all user's active games"""
         user = User.query(User.name == request.user_name).get()
+        # Check if user exists
         if not user:
             raise endpoints.NotFoundException("User doesn't exist")
         user_games = user.get_user_games()
@@ -146,7 +152,9 @@ class BattleshipApi(remote.Service):
         )
     def get_user_rankings(self, request):
         """Returns a leader-board"""
+        # Get all users
         users = User.query()
+        # Order them by victories
         users.order(User.victories).fetch()
         return ScoreForms(user=[user.to_form() for user in users])
 

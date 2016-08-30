@@ -55,7 +55,7 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
  - Path: 'shoot'
  - Method: POST
  - Parameters: game, coordinates
- - Returns: ShotForm with information about the shot.
+ - Returns: StringMessage with information about the shot.
  - Description: Stores a shot in the board history, checks if the game is over and returns information about the cell hit.
 
 - **get_user_games**
@@ -82,26 +82,22 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
 
 ##Forms Included:
 - **NewUserForm**
- - Representation of a Game's state (urlsafe_key, attempts_remaining,
-    game_over flag, message, user_name).
+ - Used to create a new user (user_name, email).
 - **NewGameForm**
- - Used to create a new game (user_name, min, max, attempts)
+ - Used to create a new game (user1_name, user2_name).
 - **NewShotForm**
- - Inbound make move form (guess).
+ - Used to send a new shot (game, coordinates).
 - **GameForm**
- - Representation of a completed game's Score (user_name, date, won flag,
-    guesses).
+ - Representation of a game state (key, board1, board2, turn, game_over).
 - **GameForms**
- - Multiple ScoreForm container.
+ - Multiple GameForm.
 - **BoardForm**
- - General purpose String container.
+ - Representation of a board state (user, history, ships).
 - **BoardForms**
- - General purpose String container.
-- **ShotForm**
- - General purpose String container.
+ - General BoardForm container.
 - **ScoreForm**
- - General purpose String container.
+ - Representatoin of an user victories (user_name, victories).
 - **ScoreForms**
- - General purpose String container.
+ - Multiple ScoreForm container.
 - **StringMessage**
  - General purpose String container.

@@ -2,9 +2,8 @@
 
 from google.appengine.ext import ndb
 from random import randint, choice
-from forms import GameForm, BoardForm, ShotForm, ScoreForm
+from forms import GameForm, BoardForm, ScoreForm, StringMessage
 import json
-import time
 
 
 class User(ndb.Model):
@@ -114,7 +113,6 @@ class Board(ndb.Model):
         """Returns the result of a shot"""
         if game.game_over:
             raise endpoints.ConflictException('Game is already over')
-        form = ShotForm()
         x = ord(coordinates[0]) - 65
         y = int(coordinates[1:]) - 1
         # Check given coordinates are right
@@ -122,32 +120,33 @@ class Board(ndb.Model):
             cell = self.board[x][y]
             # Miss
             if cell == 0:
-                form.message = 'miss'
+                message = 'miss'
                 self.board[x][y] += 1
-                self.history.append([coordinates, form.message])
+                self.history.append([coordinates, message])
                 self.put()
                 game.turn += 1
                 game.put()
             # Cell already shot
             if cell == 1 or cell == 3:
-                form.message = 'shot'
+                message = 'shot'
             # Hit
             if cell == 2:
-                form.message = self.check_hit(x, y)
+                # Check if is a 'hit' or a 'sunk'
+                message = self.check_hit(x, y)
                 self.ships -= 1
                 self.board[x][y] += 1
-                self.history.append([coordinates, form.message])
+                # Store coordinates in board history
+                self.history.append([coordinates, message])
                 self.put()
                 # Check if all ships are sunk
                 if self.ships == 0:
                     game.finish_game()
         # Given coordinates are not right
         else:
-            form.message = 'Bad coordinates'
-        # Return the updated board
-        form.board = json.dumps(self.board)
-        print self.layout()
-        return form
+            message = 'Bad coordinates'
+        # Uncomment the next line to print a board representation (debug)
+        # print self.layout()
+        return StringMessage(message=message)
 
     def check_hit(self, x, y):
         """Checks if a hit sinks a ship"""
@@ -272,6 +271,7 @@ class Game(ndb.Model):
             winner = User.query(User.key == self.user2).get()
         else:
             winner = User.query(User.key == self.user1).get()
+        # Adds a victory to the winner
         winner.victories += 1
         winner.put()
         return

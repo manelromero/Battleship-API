@@ -4,19 +4,19 @@ from protorpc import messages
 
 
 class NewUserForm(messages.Message):
-    """To create a new user"""
+    """Form to create a new user"""
     user_name = messages.StringField(1, required=True)
     email = messages.StringField(2)
 
 
 class NewGameForm(messages.Message):
-    """To create a new game"""
+    """Form to create a new game"""
     user1_name = messages.StringField(1, required=True)
     user2_name = messages.StringField(2, required=True)
 
 
 class NewShotForm(messages.Message):
-    """To create a new shot"""
+    """Form to create a new shot"""
     game = messages.StringField(1, required=True)
     coordinates = messages.StringField(3, required=True)
 
@@ -31,7 +31,7 @@ class GameForm(messages.Message):
 
 
 class GameForms(messages.Message):
-    """For multiple GameForm"""
+    """Form for multiple GameForm"""
     games = messages.MessageField(GameForm, 1, repeated=True)
 
 
@@ -43,14 +43,13 @@ class BoardForm(messages.Message):
 
 
 class BoardForms(messages.Message):
-    """For multiple BoardForm"""
+    """Form for multiple BoardForm"""
     boards = messages.MessageField(BoardForm, 1, repeated=True)
 
 
-class ShotForm(messages.Message):
-    """Form for outbound shot result information"""
-    message = messages.StringField(1, required=True)
-    board = messages.StringField(2, required=True)
+class BoardStateForm(messages.Message):
+    """Form for outbound board hits information"""
+    board = messages.StringField(1, required=True)
 
 
 class ScoreForm(messages.Message):
@@ -60,10 +59,10 @@ class ScoreForm(messages.Message):
 
 
 class ScoreForms(messages.Message):
-    """For multiple ScoreForm"""
+    """Form for multiple ScoreForm"""
     user = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
 class StringMessage(messages.Message):
-    """StringMessage-- outbound (single) string message"""
+    """Form for outbound (single) string message"""
     message = messages.StringField(1, required=True)
