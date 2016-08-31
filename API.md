@@ -92,7 +92,7 @@ Example:
 #### Description
 Deletes a game in progress.
 #### Request URL
-`POST http://localhost:8080/_ah/api/battleship/1.0/game/delete?game_key=<game_key>`
+`DELETE http://localhost:8080/_ah/api/battleship/1.0/game/delete?game_key=<game_key>`
 #### Response
 Example:
 ```
@@ -110,7 +110,7 @@ Fires a shot. Checks if the game exists and is not over, if the coordinates are 
 - game
 - coordinates
 
-Example
+Example:
 ```
 {
  "game": <game_key>,

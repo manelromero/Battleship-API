@@ -87,7 +87,7 @@ class BattleshipApi(remote.Service):
         response_message=StringMessage,
         path='game/delete',
         name='delete_game',
-        http_method='POST')
+        http_method='DELETE')
     def delete_game(self, request):
         """Deletes a game in progress"""
         # Get game and boards

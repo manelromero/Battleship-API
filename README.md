@@ -12,7 +12,10 @@ After the ships have been positioned, the game proceeds in a series of rounds. I
 
 When all of the squares of a ship have been hit, the ship is sunk, and the ship's owner announces this (e.g., "You sank my battleship!"). If all of a player's ships have been sunk, the game is over and their opponent wins.
 
+The player that has sunk all the opponent player's ships gets one vitory point. The number of victories of every player can be checked using the `get_user_rankings` endpoint.
+
 ## Files Included
+
 - **app.yaml**: App configuration.
 - **cron.yaml**: Cron job configuration.
 - **index.yaml**: Entities configuration.
@@ -49,7 +52,7 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
 
 - #### delete_game
     - Path: 'game/delete'
-    - Method: POST
+    - Method: DELETE
     - Parameters: game_key
     - Returns: Message confirming game deletion.
     - Description: Deletes any ongoing game.
@@ -76,6 +79,7 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
     - Description: Returns all users ordered by victories.
 
 ## Models Included
+
 - #### User
 
     Stores unique `user_name` and (optional) `email` address.
@@ -87,36 +91,47 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
     Stores unique games, automatically generated. Associated with User model via KeyProperty both `user1` and `user2` and with Board both `board1` and `board2`. Contains `turn` to rotate the turn betweeen players, `game_over` to check if game has been finished and `history` with all shots fired in the game.
 
 ## Forms Included
+
 - #### NewUserForm
 
     Used to create a new user (user_name, email).
+
 - #### NewGameForm
 
     Used to create a new game (user1_name, user2_name).
+
 - #### NewShotForm
 
     Used to send a new shot (game, coordinates).
+
 - #### ShotForm
 
     Representation of a shoot result (result, next_turn, opponent_board, user_board, game_over).
+
 - #### GameForm
 
     Representation of a game state (key, board1, board2, turn, game_over).
+
 - #### GameForms
 
     Multiple GameForm.
+
 - #### BoardForm
 
     Representation of a board state (user, history, ships).
+
 - #### BoardForms
 
     General BoardForm container.
+
 - #### ScoreForm
 
     Representatoin of an user victories (user_name, victories).
+
 - #### ScoreForms
 
     Multiple ScoreForm container.
+    
 - #### StringMessage
 
     General purpose String container.
