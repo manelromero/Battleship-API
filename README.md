@@ -1,7 +1,7 @@
 # Battleship game API project
 For instructions about how to use this API [go here](https://github.com/manelromero/Battleship-API/blob/master/API.md).
 
-## Game Description:
+## Game Description
 Battleship game is played on two grids, one for each player. The grid size is 10×10 cells and the individual squares in the grid are identified by letter and number (e.g., 'B6').
 
 Each gets a grid with the ships arranged. Each ship occupies a number of consecutive squares on the grid, arranged either horizontally or vertically. The number of squares for each ship is determined by the type of the ship. The ships cannot overlap (i.e., only one ship can occupy any given square in the grid). The types and numbers of ships allowed are the same for each player.
@@ -12,7 +12,7 @@ After the ships have been positioned, the game proceeds in a series of rounds. I
 
 When all of the squares of a ship have been hit, the ship is sunk, and the ship's owner announces this (e.g., "You sank my battleship!"). If all of a player's ships have been sunk, the game is over and their opponent wins.
 
-## Files Included:
+## Files Included
 - **app.yaml**: App configuration.
 - **cron.yaml**: Cron job configuration.
 - **index.yaml**: Entities configuration.
@@ -77,32 +77,46 @@ When all of the squares of a ship have been hit, the ship is sunk, and the ship'
 
 ## Models Included
 - #### User
+
     Stores unique `user_name` and (optional) `email` address.
 - #### Board
+
     Stores unique boards, automatically generated for using in games. Associated with User model via KeyProperty. Contains `board`, a list of lists with cells information and `ships` with the amount of cells remaining to hit.
 - #### Game
+
     Stores unique games, automatically generated. Associated with User model via KeyProperty both `user1` and `user2` and with Board both `board1` and `board2`. Contains `turn` to rotate the turn betweeen players, `game_over` to check if game has been finished and `history` with all shots fired in the game.
 
 ## Forms Included
 - #### NewUserForm
+
     Used to create a new user (user_name, email).
 - #### NewGameForm
+
     Used to create a new game (user1_name, user2_name).
 - #### NewShotForm
+
     Used to send a new shot (game, coordinates).
 - #### ShotForm
+
     Representation of a shoot result (result, next_turn, opponent_board, user_board, game_over).
 - #### GameForm
+
     Representation of a game state (key, board1, board2, turn, game_over).
 - #### GameForms
+
     Multiple GameForm.
 - #### BoardForm
+
     Representation of a board state (user, history, ships).
 - #### BoardForms
+
     General BoardForm container.
 - #### ScoreForm
+
     Representatoin of an user victories (user_name, victories).
 - #### ScoreForms
+
     Multiple ScoreForm container.
 - #### StringMessage
+
     General purpose String container.
