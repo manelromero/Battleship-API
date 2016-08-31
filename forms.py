@@ -21,6 +21,15 @@ class NewShotForm(messages.Message):
     coordinates = messages.StringField(3, required=True)
 
 
+class ShotForm(messages.Message):
+    """Form to create a new shot"""
+    result = messages.StringField(1, required=True)
+    next_turn = messages.StringField(2, required=True)
+    user_board = messages.StringField(4, required=True)
+    opponent_board = messages.StringField(3, required=True)
+    game_over = messages.BooleanField(5, required=True)
+
+
 class GameForm(messages.Message):
     """Form for outbound game state information"""
     key = messages.StringField(1, required=True)

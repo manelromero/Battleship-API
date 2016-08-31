@@ -13,15 +13,14 @@ class SendReminderEmail(webapp2.RequestHandler):
         users = self.get_users()
         for user in users:
             subject = 'Game reminder'
-            body = 'Hello {}, you have an unfinished game!'.format(user.name)
+            body = 'Hello {}, you have unfinished game/s!'.format(user.name)
             # This will send test emails, the arguments to send_mail are:
             # from, to, subject, body
             mail.send_mail(
                 'noreply@{}.appspotmail.com'.format(app_id),
                 user.email,
                 subject,
-                body
-                )
+                body)
 
     def get_users(self):
         """Get users with unfinished games and email address for reminder"""
@@ -30,9 +29,9 @@ class SendReminderEmail(webapp2.RequestHandler):
         for game in games:
             user1 = User.query(User.key == game.user1).get()
             user2 = User.query(User.key == game.user2).get()
-            if user1.email:
+            if user1.email and user1 not in users:
                 users.append(user1)
-            if user2.email:
+            if user2.email and user2 not in users:
                 users.append(user2)
         return users
 

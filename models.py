@@ -2,8 +2,9 @@
 
 from google.appengine.ext import ndb
 from random import randint, choice
-from forms import GameForm, BoardForm, ScoreForm, StringMessage
+from forms import GameForm, BoardForm, ScoreForm, ShotForm
 import json
+import time
 
 
 class User(ndb.Model):
@@ -14,9 +15,11 @@ class User(ndb.Model):
 
     def get_user_games(self):
         """Gets all user's games"""
-        user_games = Game.query(ndb.OR(
-            Game.user1 == self.key, Game.user2 == self.key)
-            )
+        user_games = Game.query(
+            ndb.AND(
+                Game.game_over == False,
+                ndb.OR(
+                    Game.user1 == self.key, Game.user2 == self.key)))
         return user_games
 
     def to_form(self):
@@ -32,7 +35,6 @@ class Board(ndb.Model):
     user = ndb.KeyProperty(required=True, kind='User')
     board = ndb.JsonProperty(required=True)
     ships = ndb.IntegerProperty(default=0)
-    history = ndb.JsonProperty(default=[])
 
     @classmethod
     def new_board(cls, user):
@@ -46,8 +48,8 @@ class Board(ndb.Model):
         board.put()
         return board
 
-    def cancel_board(self):
-        """Cancels a game in progress"""
+    def delete_board(self):
+        """Deletes a game in progress"""
         self.key.delete()
         return
 
@@ -109,44 +111,56 @@ class Board(ndb.Model):
                     success = True
         return self
 
-    def shoot(self, game, coordinates):
-        """Returns the result of a shot"""
-        if game.game_over:
-            raise endpoints.ConflictException('Game is already over')
-        x = ord(coordinates[0]) - 65
-        y = int(coordinates[1:]) - 1
-        # Check given coordinates are right
-        if 0 <= x <= 9 and 0 <= y <= 9:
-            cell = self.board[x][y]
-            # Miss
-            if cell == 0:
-                message = 'miss'
-                self.board[x][y] += 1
-                self.history.append([coordinates, message])
-                self.put()
-                game.turn += 1
-                game.put()
-            # Cell already shot
-            if cell == 1 or cell == 3:
-                message = 'shot'
-            # Hit
-            if cell == 2:
-                # Check if is a 'hit' or a 'sunk'
-                message = self.check_hit(x, y)
-                self.ships -= 1
-                self.board[x][y] += 1
-                # Store coordinates in board history
-                self.history.append([coordinates, message])
-                self.put()
-                # Check if all ships are sunk
-                if self.ships == 0:
-                    game.finish_game()
-        # Given coordinates are not right
-        else:
-            message = 'Bad coordinates'
+    def shoot(self, game, x, y):
+        # Create form for response
+        form = ShotForm()
+        # Convert coordinates to String value to store in history
+        coordinates = str(chr(x + 65)) + str(y + 1)
+        cell = self.board[x][y]
+        # Miss
+        if cell == 0:
+            form.result = 'miss'
+            self.board[x][y] += 1
+            self.put()
+            # Store coordinates in game history and change the turn
+            game.history.append({
+                'Date': time.time(),
+                'User': User.query(User.key == self.user).get().name,
+                'Coordinates': coordinates,
+                'Result': form.result})
+            game.turn += 1
+            game.put()
+        # Cell already shot
+        if cell == 1 or cell == 3:
+            form.result = 'shot'
+        # Hit
+        if cell == 2:
+            # Check if is a 'hit' or a 'sunk'
+            form.result = self.check_hit(x, y)
+            self.ships -= 1
+            self.board[x][y] += 1
+            self.put()
+            # Store coordinates in game history
+            game.history.append([coordinates, form.result])
+            game.put()
+            # Check if all ships are sunk
+            if self.ships == 0:
+                game.finish_game()
         # Uncomment the next line to print a board representation (debug)
         # print self.layout()
-        return StringMessage(message=message)
+        if game.board1 == self.key:
+            user_board = Board.query(Board.key == game.board2).get().board
+        else:
+            user_board = Board.query(Board.key == game.board1).get().board
+        # Find out whose turn is
+        if game.turn % 2 == 0:
+            form.next_turn = User.query(User.key == game.user2).get().name
+        else:
+            form.next_turn = User.query(User.key == game.user1).get().name
+        form.user_board = json.dumps(user_board)
+        form.opponent_board = json.dumps(self.board)
+        form.game_over = game.game_over
+        return form
 
     def check_hit(self, x, y):
         """Checks if a hit sinks a ship"""
@@ -213,8 +227,8 @@ class Board(ndb.Model):
                     ship = False
                     break
                 i += 1
-        message = 'sunk' if sunk else 'hit'
-        return message
+        result = 'sunk' if sunk else 'hit'
+        return result
 
     def layout(self):
         """Returns board layout (for debug)"""
@@ -243,6 +257,7 @@ class Game(ndb.Model):
     board2 = ndb.KeyProperty(required=True, kind='Board')
     turn = ndb.IntegerProperty()
     game_over = ndb.BooleanProperty(default=False)
+    history = ndb.JsonProperty(default=[])
 
     @classmethod
     def new_game(cls, user1, user2, board1, board2):
@@ -253,13 +268,12 @@ class Game(ndb.Model):
             user2=user2,
             board1=board1,
             board2=board2,
-            turn=turn
-            )
+            turn=turn)
         game.put()
         return game
 
-    def cancel_game(self):
-        """Cancels a game in progress"""
+    def delete_game(self):
+        """Deletes a game in progress"""
         self.key.delete()
         return
 
