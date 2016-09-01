@@ -83,9 +83,11 @@ The player that has sunk all the opponent player's ships gets one vitory point. 
 - #### User
 
     Stores unique `user_name` and (optional) `email` address.
+
 - #### Board
 
     Stores unique boards, automatically generated for using in games. Associated with User model via KeyProperty. Contains `board`, a list of lists with cells information and `ships` with the amount of cells remaining to hit.
+    
 - #### Game
 
     Stores unique games, automatically generated. Associated with User model via KeyProperty both `user1` and `user2` and with Board both `board1` and `board2`. Contains `turn` to rotate the turn betweeen players, `game_over` to check if game has been finished and `history` with all shots fired in the game.
